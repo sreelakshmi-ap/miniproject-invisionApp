@@ -79,47 +79,20 @@ public class DashboardController {
 	 Random random = new Random();
 	 Set<Role> role;
 	
-	@PostMapping("/addUsersList")
-	@ResponseStatus(HttpStatus.CREATED) 
-    public HashMap<String, String> addUsersList( 
-        @RequestBody List<Employees> employee) 
-    
-    { 
-		HashMap<String, String> userAndPwd = new HashMap<String, String>();
-		for(int i = 0; i < employee.size(); i ++) {
-			Employees emp = employee.get(i);
-			if(!userRepo.existsByEmail(emp.getEmail()))
-			{
-			role = new HashSet<>();
-			Role userRole = roleRepo.findByName(ERoles.ROLE_USER).get();
-			role.add(userRole);
-			emp.setRoles(role);
-		
-			String pwd = emp.getUsername()+random.nextInt(10000);
-			String encodedPwd = encoder.encode(pwd);
-			emp.setPassword(encodedPwd);
-			emp.setImage_path("/images/"+emp.getUsername());
-			userRepo.save(emp);
-       
-			userAndPwd.put(emp.getUsername(), pwd);
-			}
-		}
-		return userAndPwd;
-    }
-	
+
 	@PostMapping("/addQuestionnaire")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ResponseEntity<?> addQuestionnaire( 
 			 @RequestParam("questionnaire") String quest,
 	         @RequestParam("pfile") MultipartFile file, 
-	         @RequestParam("xfile") MultipartFile xlFile) throws IOException 
+	         @RequestBody List<Employees> list) throws IOException 
 	 {
 		
 		Gson gson = new Gson(); Questionnaire qnr = gson.fromJson(quest, Questionnaire.class);
 		File pptFile = new File("C:\\Users\\dell\\Documents\\workspace-spring\\invision\\PptFiles\\"+file.getOriginalFilename());
 		String ppt_path = uploadService.uploadFiles(file, pptFile);
 		qnr.setPpt_path(ppt_path);
-		userService.addEmployeesFromXl(xlFile);
+		userService.addUsersList(list);
 		
 		qnrService.save(qnr);
 		

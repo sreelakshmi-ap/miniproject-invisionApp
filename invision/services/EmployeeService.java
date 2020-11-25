@@ -138,6 +138,29 @@ public class EmployeeService {
 		}
 		
 	}
-	
-	  
+	public HashMap<String, String> addUsersList(List<Employees> list)
+	{
+		HashMap<String, String> userAndPwd = new HashMap<String, String>();
+		for(int i = 0; i < list.size(); i ++) {
+			Employees emp = list.get(i);
+			if(!userRepo.existsByEmail(emp.getEmail()))
+			{
+			role = new HashSet<>();
+			Role userRole = roleRepo.findByName(ERoles.ROLE_USER).get();
+			role.add(userRole);
+			emp.setRoles(role);
+		
+			String pwd = emp.getUsername()+random.nextInt(10000);
+			String encodedPwd = encoder.encode(pwd);
+			emp.setPassword(encodedPwd);
+			emp.setImage_path("/images/"+emp.getUsername());
+			userRepo.save(emp);
+       
+			userAndPwd.put(emp.getUsername(), pwd);
+			}
+			
+		}
+		return userAndPwd;
+	}
 }
+
