@@ -3,7 +3,7 @@ package com.miniproj.invision.controller;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +12,6 @@ import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,12 +31,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.google.gson.Gson;
 import com.miniproj.invision.dao.EmployeeRepo;
+import com.miniproj.invision.dao.MapperRepo;
 import com.miniproj.invision.dao.QuestionnaireRepo;
 import com.miniproj.invision.dao.RolesRepo;
 import com.miniproj.invision.model.ERoles;
 import com.miniproj.invision.model.Employees;
 import com.miniproj.invision.model.Questionnaire;
 import com.miniproj.invision.model.Role;
+import com.miniproj.invision.model.User_Qnr_Mapper;
 import com.miniproj.invision.payload.response.MessageResponse;
 import com.miniproj.invision.services.EmployeeService;
 import com.miniproj.invision.services.MailService;
@@ -57,6 +58,9 @@ public class DashboardController {
 	
 	@Autowired
 	QuestionnaireRepo qnrRepo;
+	
+	@Autowired
+	MapperRepo mapperRepo;
 	
 	@Autowired
 	QuestionnaireService qnrService;
@@ -84,18 +88,18 @@ public class DashboardController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public ResponseEntity<?> addQuestionnaire( 
 			 @RequestParam("questionnaire") String quest,
-	         @RequestParam("pfile") MultipartFile file, 
-	         @RequestBody List<Employees> list) throws IOException 
+	         @RequestParam("pptfile") MultipartFile file, 
+	         @RequestParam("xlfile") MultipartFile xlFile) throws IOException  
 	 {
-		
+
 		Gson gson = new Gson(); Questionnaire qnr = gson.fromJson(quest, Questionnaire.class);
 		File pptFile = new File("C:\\Users\\dell\\Documents\\workspace-spring\\invision\\PptFiles\\"+file.getOriginalFilename());
 		String ppt_path = uploadService.uploadFiles(file, pptFile);
 		qnr.setPpt_path(ppt_path);
-		userService.addUsersList(list);
-		
-		qnrService.save(qnr);
-		
+		userService.addEmployeesFromXl(xlFile);
+
+		qnrRepo.save(qnr);
+
 		return ResponseEntity.ok(new MessageResponse("New questionnaire added successfully"));
 	} 
 	
@@ -114,14 +118,12 @@ public class DashboardController {
 		Questionnaire qnr = qnrRepo.findById(q_id).get();
 		String subject = "Regarding "+qnr.getTitle();
 		
-		for(int i = 0; i < empList.size(); i ++) {
+		for(Employees emp: empList) {
+		
+			String password = emp.generatePassword();
+			String encodedPwd = encoder.encode(password);
 			
-			Employees emp = empList.get(i);
-			
-			String pwd = emp.generatePassword();
-			String encodedPwd = encoder.encode(pwd);
-			
-			if(!userRepo.existsByEmail(emp.getEmail()))
+			if(!userRepo.existsById(emp.getEmp_num()))
 			{
 				role = new HashSet<>();
 				Role userRole = roleRepo.findByName(ERoles.ROLE_USER).get();
@@ -139,16 +141,16 @@ public class DashboardController {
 			}
 			
 			String mailBody = qnr.getMail_body()+" Login credentials"
-					+ " Username:"+emp.getUsername()+" password:"+pwd+
+					+ " Username:"+emp.getUsername()+" password:"+password+
 					" NOTE: These will be your login credentials for company related other logins as well"+
-					" click on the link to login  : https://127.0.0.1:8080/authenticate/login";
+					" click on the link to login  : https://127.0.0.1:8080/authenticate/login"
+					+ " Please accept before "+qnr.getEnd_date();
 			String toUser = emp.getEmail();
 			
 			mailService.sendEmail(toUser, subject, mailBody);
 			
-			String sql = "insert into invision.status values('"+emp.getEmp_num()+"',"+q_id+",0,NULL)";
-			Query query = entityManager.createNativeQuery(sql);
-			query.executeUpdate();
+			User_Qnr_Mapper mapping = new User_Qnr_Mapper(emp.getEmp_num(), q_id, Boolean.FALSE, LocalDate.now());
+			mapperRepo.save(mapping);
 		}
 	 }
 	

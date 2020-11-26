@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.miniproj.invision.dao.QuestionnaireRepo;
-import com.miniproj.invision.model.Questionnaire;
 
 @Service
 public class UploadService {

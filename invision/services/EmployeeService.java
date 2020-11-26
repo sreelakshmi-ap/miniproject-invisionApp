@@ -1,28 +1,21 @@
 package com.miniproj.invision.services;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.miniproj.invision.dao.EmployeeRepo;
 import com.miniproj.invision.dao.RolesRepo;
 import com.miniproj.invision.model.ERoles;
@@ -61,7 +54,8 @@ public class EmployeeService {
 	{
 		HashMap<String, String> userAndPwd = new HashMap<String, String>();
 		
-	    XSSFWorkbook workbook = new XSSFWorkbook(excelDataFile.getInputStream());
+	    @SuppressWarnings("resource")
+		XSSFWorkbook workbook = new XSSFWorkbook(excelDataFile.getInputStream());
 	    XSSFSheet worksheet = workbook.getSheetAt(0);
 	    
 	    for(int i = 1; i< worksheet.getPhysicalNumberOfRows(); i++) {
@@ -93,7 +87,7 @@ public class EmployeeService {
 	
 	public ResponseEntity<?> addAdmins(Employees emp)
 	{
-		if(!userRepo.existsByUsername(emp.getUsername()))
+		if(!userRepo.existsById(emp.getEmp_num()))
 		{
 		role = new HashSet<>();
 		Role adminRole = roleRepo.findByName(ERoles.ROLE_ADMIN).get();
@@ -117,7 +111,7 @@ public class EmployeeService {
 	
 	public ResponseEntity<?> addSuperAdmins(Employees emp)
 	{
-		if(!userRepo.existsByUsername(emp.getUsername()))
+		if(!userRepo.existsById(emp.getEmp_num()))
 		{
 		role = new HashSet<>();
 		Role adminRole = roleRepo.findByName(ERoles.ROLE_SUPERADMIN).get();
@@ -138,12 +132,12 @@ public class EmployeeService {
 		}
 		
 	}
-	public HashMap<String, String> addUsersList(List<Employees> list)
+	public String addUsersList(List<Employees> list)
 	{
-		HashMap<String, String> userAndPwd = new HashMap<String, String>();
+		
 		for(int i = 0; i < list.size(); i ++) {
 			Employees emp = list.get(i);
-			if(!userRepo.existsByEmail(emp.getEmail()))
+			if(!userRepo.existsById(emp.getEmp_num()))
 			{
 			role = new HashSet<>();
 			Role userRole = roleRepo.findByName(ERoles.ROLE_USER).get();
@@ -156,11 +150,11 @@ public class EmployeeService {
 			emp.setImage_path("/images/"+emp.getUsername());
 			userRepo.save(emp);
        
-			userAndPwd.put(emp.getUsername(), pwd);
+			//userAndPwd.put(emp.getUsername(), pwd);
 			}
 			
 		}
-		return userAndPwd;
+		return "userAndPwd";
 	}
 }
 

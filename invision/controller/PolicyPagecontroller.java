@@ -1,33 +1,36 @@
 package com.miniproj.invision.controller;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import java.util.HashMap;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.miniproj.invision.dao.EmployeeRepo;
+import com.miniproj.invision.dao.MapperRepo;
 import com.miniproj.invision.dao.QuestionnaireRepo;
-import com.miniproj.invision.dao.RolesRepo;
 import com.miniproj.invision.model.Employees;
 import com.miniproj.invision.model.Questionnaire;
 import com.miniproj.invision.payload.response.MessageResponse;
+import com.miniproj.invision.payload.response.ReportResponse;
 import com.miniproj.invision.services.EmployeeService;
 import com.miniproj.invision.services.MailService;
+import com.miniproj.invision.services.MapperService;
 import com.miniproj.invision.services.UploadService;
 
 @RestController
-public class PolicyPagecontroller 
+@RequestMapping("/policy")
+public class PolicyPageController 
 {
 	
 	@Autowired
@@ -35,9 +38,6 @@ public class PolicyPagecontroller
 	
 	@Autowired
 	QuestionnaireRepo qnrRepo;
-
-	@Autowired
-	RolesRepo roleRepo;
 	
 	@Autowired
 	EmployeeService userService;
@@ -49,10 +49,13 @@ public class PolicyPagecontroller
 	PasswordEncoder encoder;
 	
 	@Autowired
+	MapperRepo mapperRepo;
+	
+	@Autowired
 	MailService mailService;
 	
-	@PersistenceContext
-	EntityManager em;
+	@Autowired
+	MapperService mapperService;
 
 	@RequestMapping(value = "/newPassword", method = RequestMethod.PUT)
 	public ResponseEntity<?> sendMailWithNewPassword (@RequestBody Employees emp) {
@@ -77,13 +80,44 @@ public class PolicyPagecontroller
 	    
 	}
 	
+	@GetMapping("/pending")
+	public HashMap<Integer,String> getPending()
+	{
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	    String currentUserName = authentication.getName();
+	    Employees currentUser = userRepo.findByUsername(currentUserName).get();
+	    
+	    return mapperService.pendingQuestionnaire(currentUser);
+	}
+	
+	@GetMapping("/completed")
+	public HashMap<Integer,String> getCompleted()
+	{
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	    String currentUserName = authentication.getName();
+	    Employees currentUser = userRepo.findByUsername(currentUserName).get();
+	    
+	    return mapperService.completedQuestionnaire(currentUser);
+	}
+	
 	@GetMapping("/getPptSource/{q_id}")
-	@PreAuthorize("hasRole('ADMIN')or hasRole('SUPERADMIN')")
-	@ResponseStatus(HttpStatus.CREATED)
 	public String getPpt(@PathVariable Integer q_id)
 	{
 		Questionnaire qnr = qnrRepo.findById(q_id).get();
 		return qnr.getPpt_path();
 	}
-
+	
+	@PostMapping("/agreed/{q_id}")
+	public ResponseEntity<?> changeStatus(@PathVariable Integer q_id)
+	{
+		mapperService.userAgreed(q_id);
+		return ResponseEntity.ok(new MessageResponse("Thank you for accepting the policy.!"));
+	}
+	
+	@GetMapping("/generateReport/{q_id}")
+	public List<ReportResponse> generateReportFromList(@PathVariable Integer q_id)
+	{
+		return mapperService.generateReport(q_id);
+	}
+	
 }

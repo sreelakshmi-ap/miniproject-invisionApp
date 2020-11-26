@@ -125,13 +125,4 @@ public class Questionnaire {
 	public Questionnaire() {}
 	
 
-	/*
-	 * "q_id":5,
-      "title":"PMA",
-      "description":"--",
-      "button_text":"agree",
-      "button_title":"agree",
-      "checkbox_text":"read",
-      "mail_body":"This is a test"
-	 */
 }
