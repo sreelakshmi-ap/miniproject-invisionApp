@@ -1,5 +1,7 @@
 package com.miniproj.invision.services;
 
+import javax.mail.MessagingException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -16,7 +18,7 @@ public class MailService {
 	}
 
 
-	public void sendEmail(String user, String subject, String body) throws MailException {
+	public void sendEmail(String user, String subject, String body) throws MailException, MessagingException {
 
 		SimpleMailMessage mail = new SimpleMailMessage();
 		mail.setTo(user);

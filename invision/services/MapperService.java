@@ -3,19 +3,31 @@ package com.miniproj.invision.services;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Set;
+
+import javax.mail.MessagingException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.miniproj.invision.dao.EmployeeRepo;
 import com.miniproj.invision.dao.MapperRepo;
 import com.miniproj.invision.dao.QuestionnaireRepo;
+import com.miniproj.invision.dao.RolesRepo;
+import com.miniproj.invision.model.ERoles;
 import com.miniproj.invision.model.Employees;
 import com.miniproj.invision.model.Questionnaire;
+import com.miniproj.invision.model.Role;
 import com.miniproj.invision.model.User_Qnr_Mapper;
+import com.miniproj.invision.payload.response.MessageResponse;
 import com.miniproj.invision.payload.response.ReportResponse;
 
 @Service
@@ -28,9 +40,21 @@ public class MapperService {
 	EmployeeRepo userRepo;
 	
 	@Autowired
+	RolesRepo roleRepo;
+	
+	@Autowired
 	QuestionnaireRepo qnrRepo;
 	
-	public void userAgreed(int q_id)
+	@Autowired
+	QuestionnaireService qnrService;
+
+	@Autowired
+	PasswordEncoder encoder;
+	
+	@Autowired
+	MailService mailService;
+	
+	public void userAgreed(int q_id) throws NoSuchElementException
 	{
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 	    String currentUserName = authentication.getName();
@@ -44,7 +68,7 @@ public class MapperService {
 	    mapperRepo.save(mapping);
 	}
 	
-	public HashMap<Integer, String> pendingQuestionnaire(Employees employee)
+	public HashMap<Integer, String> pendingQuestionnaire(Employees employee) throws NoSuchElementException
 	{
 		HashMap<Integer, String> idAndTitle = new HashMap<>();
 		String title;
@@ -76,7 +100,7 @@ public class MapperService {
 		return idAndTitle;
 	}
 	
-	public List<ReportResponse> generateReport(int q_id)
+	public List<ReportResponse> generateReport(int q_id) throws NoSuchElementException, IndexOutOfBoundsException
 	{
 	List<String> reportList = mapperRepo.getReport(q_id);
 	String username, title, status, acceptedOn, mailSent;
@@ -98,6 +122,108 @@ public class MapperService {
 	}
 	return reportResponseList;
 	
+	}
+	
+	public ResponseEntity<?> publishQuestionnaire(Integer q_id, List<Employees> empList) throws NoSuchElementException, MailException, MessagingException
+	{	
+		Questionnaire qnr = qnrRepo.findById(q_id).get();
+		if((LocalDate.now().isBefore(qnr.getEnd_date())))
+		{
+		String subject = "Regarding "+qnr.getTitle();
+		
+		for(Employees emp: empList) {
+		
+			String password = emp.generatePassword();
+			String encodedPwd = encoder.encode(password);
+			Set<Role> role;
+			
+			if(!userRepo.existsById(emp.getEmp_num()))
+			{
+				role = new HashSet<>();
+				Role userRole = roleRepo.findByName(ERoles.ROLE_USER).get();
+				role.add(userRole);
+				emp.setRoles(role);
+				emp.setPassword(encodedPwd);
+				emp.setImage_path("/images/"+emp.getUsername());
+				userRepo.save(emp);
+			}
+			else
+			{
+				Employees previouslyExistingEmp = userRepo.findById(emp.getEmp_num()).get();
+				previouslyExistingEmp.setPassword(encodedPwd);
+				userRepo.save(previouslyExistingEmp);
+			}
+			
+			String mailBody = qnr.getMail_body()+" Login credentials"
+					+ " Username:"+emp.getUsername()+" password:"+password+
+					" NOTE: These will be your login credentials for company related other logins as well"+
+					" click on the link to login  : https://127.0.0.1:8080/authenticate/login"
+					+ " Please accept before "+qnr.getEnd_date();
+			String toUser = emp.getEmail();
+			
+			mailService.sendEmail(toUser, subject, mailBody);
+			
+			User_Qnr_Mapper mapping = new User_Qnr_Mapper(emp.getEmp_num(), q_id, Boolean.FALSE, LocalDate.now());
+			mapperRepo.save(mapping);
+			}
+		return ResponseEntity.ok(new MessageResponse("Published mail to the users successfully.!"));
+		}
+		else
+			return ResponseEntity.ok(new MessageResponse("The questionnaire end date has been expired.!"));
+	}
+	
+	public ResponseEntity<?> remindUser(Integer q_id, List<Employees> empList) throws NoSuchElementException, MailException, MessagingException
+	{
+		Questionnaire qnr = qnrRepo.findById(q_id).get();
+		if((LocalDate.now().isBefore(qnr.getEnd_date())))
+		{
+		String subject = "Reminder "+qnr.getTitle();
+		
+		for(Employees emp: empList) {
+			
+			User_Qnr_Mapper mapping = mapperRepo.findByEmp_numAndQ_id(emp.getEmp_num(), q_id).get();
+			if(!mapping.isStatus())
+			{
+			String password = emp.generatePassword();
+			String encodedPwd = encoder.encode(password);
+			Set<Role> role;
+			
+			if(!userRepo.existsById(emp.getEmp_num()))
+			{
+				role = new HashSet<>();
+				Role userRole = roleRepo.findByName(ERoles.ROLE_USER).get();
+				role.add(userRole);
+				emp.setRoles(role);
+				emp.setPassword(encodedPwd);
+				emp.setImage_path("/images/"+emp.getUsername());
+				userRepo.save(emp);
+			}
+			else
+			{
+				Employees previouslyExistingEmp = userRepo.findById(emp.getEmp_num()).get();
+				previouslyExistingEmp.setPassword(encodedPwd);
+				userRepo.save(previouslyExistingEmp);
+			}
+			
+			String mailBody = qnr.getMail_body()+" Login credentials"
+					+ " Username:"+emp.getUsername()+" password:"+password+
+					" NOTE: These will be your login credentials for company related other logins as well"+
+					" click on the link to login  : https://127.0.0.1:8080/authenticate/login"
+					+ " Please accept before "+qnr.getEnd_date();
+			String toUser = emp.getEmail();
+			
+			mailService.sendEmail(toUser, subject, mailBody);
+			mapping.setDate_mail_sent(LocalDate.now());
+			mapperRepo.save(mapping);
+			
+			}
+			}
+		return ResponseEntity.ok(new MessageResponse("Reminder sent thru mail to the users successfully.!"));
+		}
+		else 
+			return ResponseEntity.ok(new MessageResponse("End date of this questionnaire has been expired"
+					+ "it was "+qnr.getEnd_date()));
+			
 	}
 
 }

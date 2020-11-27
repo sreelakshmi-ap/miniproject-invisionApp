@@ -12,20 +12,18 @@ import javax.persistence.Table;
 @Table(name = "user_qnr_mapper")
 public class User_Qnr_Mapper {
 
-	public User_Qnr_Mapper(String emp_num, Integer q_id, boolean status, LocalDate date_mail_sent,
+	public User_Qnr_Mapper(String emp_num, Integer q_id, boolean status,
 			LocalDate date_accepted) {
 		this.emp_num = emp_num;
 		this.q_id = q_id;
 		this.status = status;
 		this.date_mail_sent = date_mail_sent;
-		this.date_accepted = date_accepted;
 	}
 	
-	public User_Qnr_Mapper(String emp_num, Integer q_id, boolean status, LocalDate date_mail_sent) {
+	public User_Qnr_Mapper(String emp_num, Integer q_id, boolean status) {
 		this.emp_num = emp_num;
 		this.q_id = q_id;
 		this.status = status;
-		this.date_mail_sent = date_mail_sent;
 	}
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,6 +34,8 @@ public class User_Qnr_Mapper {
 	private boolean status;
 	private LocalDate date_mail_sent;
 	private LocalDate date_accepted;
+	
+	
 	public Integer getMap_id() {
 		return map_id;
 	}

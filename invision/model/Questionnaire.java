@@ -1,16 +1,10 @@
 package com.miniproj.invision.model;
 
 import java.time.LocalDate;
-import java.util.Set;
-
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
@@ -42,8 +36,6 @@ public class Questionnaire {
 		this.button_text = button_text;
 		this.button_title = button_title;
 		this.checkbox_text = checkbox_text;
-		this.start_date = LocalDate.now();
-		this.end_date = LocalDate.ofEpochDay(40);
 		this.mail_body = mail_body;
 	}
 
@@ -123,6 +115,4 @@ public class Questionnaire {
 	}
 
 	public Questionnaire() {}
-	
-
 }

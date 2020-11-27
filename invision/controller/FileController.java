@@ -75,13 +75,6 @@ public class FileController {
 		
 		return "Success";
 	}
-	
-	@RequestMapping(value = "/uploadXl", method = RequestMethod.POST)
-	@PreAuthorize("hasRole('ADMIN')or hasRole('SUPERADMIN')")
-	public String uploadXlFile (@RequestParam("file") MultipartFile file) throws IOException 
-	{
-		File xlFile = new File("C:\\Users\\dell\\Documents\\workspace-spring\\invision\\XlFiles\\"+file.getOriginalFilename());
-		return uploadService.uploadFiles(file, xlFile);
-	}
+
 	
 }

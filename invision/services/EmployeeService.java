@@ -132,7 +132,7 @@ public class EmployeeService {
 		}
 		
 	}
-	public String addUsersList(List<Employees> list)
+	public void addUsersList(List<Employees> list)
 	{
 		
 		for(int i = 0; i < list.size(); i ++) {
@@ -154,7 +154,7 @@ public class EmployeeService {
 			}
 			
 		}
-		return "userAndPwd";
+		
 	}
 }
 

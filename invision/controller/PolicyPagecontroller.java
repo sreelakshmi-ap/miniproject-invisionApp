@@ -1,16 +1,17 @@
 package com.miniproj.invision.controller;
 
 import java.util.HashMap;
-import java.util.List;
+import javax.mail.MessagingException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -20,9 +21,7 @@ import com.miniproj.invision.dao.EmployeeRepo;
 import com.miniproj.invision.dao.MapperRepo;
 import com.miniproj.invision.dao.QuestionnaireRepo;
 import com.miniproj.invision.model.Employees;
-import com.miniproj.invision.model.Questionnaire;
 import com.miniproj.invision.payload.response.MessageResponse;
-import com.miniproj.invision.payload.response.ReportResponse;
 import com.miniproj.invision.services.EmployeeService;
 import com.miniproj.invision.services.MailService;
 import com.miniproj.invision.services.MapperService;
@@ -57,9 +56,9 @@ public class PolicyPageController
 	@Autowired
 	MapperService mapperService;
 
-	@RequestMapping(value = "/newPassword", method = RequestMethod.PUT)
-	public ResponseEntity<?> sendMailWithNewPassword (@RequestBody Employees emp) {
-
+	@RequestMapping(value = "/forgotPassword", method = RequestMethod.PUT)
+	public ResponseEntity<?> sendMailWithNewPassword (@RequestBody Employees emp) throws MailException, MessagingException
+	{
 	    Employees employee = userRepo.findByUsername(emp.getUsername()).get();
 
 	    String newPassword = employee.generatePassword();
@@ -70,7 +69,7 @@ public class PolicyPageController
 	    String toUser = employee.getEmail();
 	    String subject = "Password Reset";
 	    String body = "Your login password has been updated to "+newPassword+" "
-	    		+ "NOTE: You should use THIS password for all the logins from now";
+	    		+ " NOTE: You should use THIS password for all the logins from now";
 	    
 	    mailService.sendEmail(toUser, subject, body);
 	    
@@ -103,21 +102,14 @@ public class PolicyPageController
 	@GetMapping("/getPptSource/{q_id}")
 	public String getPpt(@PathVariable Integer q_id)
 	{
-		Questionnaire qnr = qnrRepo.findById(q_id).get();
-		return qnr.getPpt_path();
+		return qnrRepo.findById(q_id).get().getPpt_path();
 	}
 	
-	@PostMapping("/agreed/{q_id}")
+	@PutMapping("/agreed/{q_id}")
 	public ResponseEntity<?> changeStatus(@PathVariable Integer q_id)
 	{
 		mapperService.userAgreed(q_id);
 		return ResponseEntity.ok(new MessageResponse("Thank you for accepting the policy.!"));
-	}
-	
-	@GetMapping("/generateReport/{q_id}")
-	public List<ReportResponse> generateReportFromList(@PathVariable Integer q_id)
-	{
-		return mapperService.generateReport(q_id);
 	}
 	
 }

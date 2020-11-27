@@ -18,12 +18,7 @@ import com.miniproj.invision.services.MailService;
 import com.miniproj.invision.services.UploadService;
 
 import java.util.ArrayList;
-
 import java.util.Set;
-
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -70,9 +65,6 @@ public class DashboardPlusButtonController {
 	@Autowired
 	MailService mailService;
 	
-	@PersistenceContext
-	EntityManager em;
-	
 	 Random random = new Random();
 	 Set<Role> role;
 
@@ -81,10 +73,10 @@ public class DashboardPlusButtonController {
 		
 			List<Adminsview> adminList = new ArrayList<>();
 			Adminsview response;
-			List<Employees> empl =  userRepo.findAllSuperAdmins();
-			for(int i = 0; i < empl.size(); i ++)
+			List<Employees> employeeList =  userRepo.findAllSuperAdmins();
+			for(Employees employee: employeeList)
 			{
-				response = new Adminsview(empl.get(i).getEmp_num(), empl.get(i).getUsername(), empl.get(i).getEmail());
+				response = new Adminsview(employee.getEmp_num(), employee.getUsername(), employee.getEmail());
 			
 				adminList.add(response);
 			}
@@ -96,10 +88,10 @@ public class DashboardPlusButtonController {
 		
 			List<Adminsview> adminList = new ArrayList<>();
 			Adminsview response;
-			List<Employees> admins =  userRepo.findAllAdmins();
-			for(int i = 0; i < admins.size(); i ++)
+			List<Employees> adminsList =  userRepo.findAllAdmins();
+			for(Employees admin: adminsList)
 			{
-				response = new Adminsview(admins.get(i).getEmp_num(), admins.get(i).getUsername(), admins.get(i).getEmail());
+				response = new Adminsview(admin.getEmp_num(), admin.getUsername(), admin.getEmail());
 			
 				adminList.add(response);
 			}
@@ -150,12 +142,12 @@ public class DashboardPlusButtonController {
 		
 		
 		@RequestMapping(value = "/changePassword", method = RequestMethod.PUT)  
-	    public ResponseEntity<?> currentUserNameSimple(@RequestBody Employees emp) {
+	    public ResponseEntity<?> currentUserNameSimple(@RequestBody String password) {
 			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		    String currentUserName = authentication.getName();
 		  
 		    Employees employee = userRepo.findByUsername(currentUserName).get();
-		    String encodedPwd = encoder.encode(emp.getPassword());
+		    String encodedPwd = encoder.encode(password);
 		    employee.setPassword(encodedPwd);
 		    
 		    userRepo.save(employee);
