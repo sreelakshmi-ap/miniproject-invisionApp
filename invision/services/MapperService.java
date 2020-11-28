@@ -126,6 +126,7 @@ public class MapperService {
 	
 	public ResponseEntity<?> publishQuestionnaire(Integer q_id, List<Employees> empList) throws NoSuchElementException, MailException, MessagingException
 	{	
+		try {
 		Questionnaire qnr = qnrRepo.findById(q_id).get();
 		if((LocalDate.now().isBefore(qnr.getEnd_date())))
 		{
@@ -170,10 +171,16 @@ public class MapperService {
 		}
 		else
 			return ResponseEntity.ok(new MessageResponse("The questionnaire end date has been expired.!"));
-	}
+		}catch(NoSuchElementException nse)
+		{
+			System.out.println(nse.getMessage());
+		}
+		return null;
+		}
 	
 	public ResponseEntity<?> remindUser(Integer q_id, List<Employees> empList) throws NoSuchElementException, MailException, MessagingException
 	{
+		try {
 		Questionnaire qnr = qnrRepo.findById(q_id).get();
 		if((LocalDate.now().isBefore(qnr.getEnd_date())))
 		{
@@ -223,7 +230,12 @@ public class MapperService {
 		else 
 			return ResponseEntity.ok(new MessageResponse("End date of this questionnaire has been expired"
 					+ "it was "+qnr.getEnd_date()));
-			
+		}
+		catch(NoSuchElementException nse)
+		{
+			System.out.println(nse.getMessage());
+		}
+		return null;
 	}
 
 }

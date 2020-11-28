@@ -19,13 +19,18 @@ public class MailService {
 
 
 	public void sendEmail(String user, String subject, String body) throws MailException, MessagingException {
-
+		try {
 		SimpleMailMessage mail = new SimpleMailMessage();
 		mail.setTo(user);
 		mail.setSubject(subject);
 		mail.setText(body);
 
 		javaMailSender.send(mail);
+		}
+		catch(MailException mex)
+		{
+			System.out.println(mex.getMessage());
+		}
 	}
 
 }

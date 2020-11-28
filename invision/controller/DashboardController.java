@@ -42,6 +42,7 @@ import com.miniproj.invision.services.MailService;
 import com.miniproj.invision.services.MapperService;
 import com.miniproj.invision.services.QuestionnaireService;
 import com.miniproj.invision.services.UploadService;
+import com.miniproj.invision.model.FilePathGetter;
 
 @RestController
 @PreAuthorize("hasRole('ADMIN')or hasRole('SUPERADMIN')")
@@ -72,10 +73,13 @@ public class DashboardController {
 	@Autowired
 	MapperService mapperService;
 	
+	@Autowired
+	private FilePathGetter pathGetter;
+	
 	 Random random = new Random();
 	 Set<Role> role;
 
-	@PostMapping("/addQuestionnaire")
+	@PostMapping("/saveQuestionnaire")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ResponseEntity<?> addQuestionnaire( 
 			 @RequestParam("questionnaire") String quest,
@@ -84,8 +88,9 @@ public class DashboardController {
 	 {
 
 		Gson gson = new Gson(); Questionnaire qnr = gson.fromJson(quest, Questionnaire.class);
-		File pptFile = new File("C:\\Users\\dell\\Documents\\workspace-spring\\invision\\PptFiles\\"+file.getOriginalFilename());
-		String ppt_path = uploadService.uploadFiles(file, pptFile);
+		
+		String fileName = uploadService.storeFile(xlFile);
+		String ppt_path = pathGetter.getUploadDir()+"/"+fileName;
 		qnr.setPpt_path(ppt_path);
 		userService.addEmployeesFromXl(xlFile);
 
@@ -101,26 +106,6 @@ public class DashboardController {
 		return qnrRepo.findById(q_id);
 	}
 	
-	@PostMapping("/save/{q_id}")
-	@ResponseStatus(HttpStatus.CREATED)
-	public ResponseEntity<?> save(@PathVariable Integer q_id, 
-		 @RequestParam("questionnaire") String quest,
-         @RequestParam("pptfile") MultipartFile file, 
-         @RequestParam("xlfile") MultipartFile xlFile) throws IOException  
- {
-
-	Gson gson = new Gson(); Questionnaire qnr = gson.fromJson(quest, Questionnaire.class);
-	
-	File pptFile = new File("C:\\Users\\dell\\Documents\\workspace-spring\\invision\\PptFiles\\"+file.getOriginalFilename());
-	String ppt_path = uploadService.uploadFiles(file, pptFile);
-	qnr.setPpt_path(ppt_path);
-	userService.addEmployeesFromXl(xlFile);
-
-	qnrRepo.save(qnr);
-
-		return ResponseEntity.ok(new MessageResponse("Saved successfully.!"));
-	 }
-
 	
 	@Transactional
 	@PostMapping("/publish/{q_id}")
