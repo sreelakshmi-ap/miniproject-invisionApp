@@ -54,18 +54,35 @@ public class MapperService {
 	@Autowired
 	MailService mailService;
 	
-	public void userAgreed(int q_id) throws NoSuchElementException
+	public ResponseEntity<?> userAgreed(int q_id) throws NoSuchElementException
 	{
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 	    String currentUserName = authentication.getName();
 	    Employees currentUser = userRepo.findByUsername(currentUserName).get();
 	    
-	    User_Qnr_Mapper mapping = mapperRepo.findByEmp_numAndQ_id(currentUser.getEmp_num(), q_id).get();
+	    Questionnaire qnr = qnrRepo.findById(q_id).get();
 	    
+	    if(LocalDate.now().isBefore(qnr.getEnd_date()))
+	    {
+	   
+	    User_Qnr_Mapper mapping = mapperRepo.findByEmp_numAndQ_id(currentUser.getEmp_num(), q_id).get();
+	   
+	    if(!mapping.isStatus())
+	    {
 	    mapping.setStatus(true);
 	    mapping.setDate_accepted(LocalDate.now());
 	    
 	    mapperRepo.save(mapping);
+	    }
+	    else
+	    	return ResponseEntity.ok(new MessageResponse("You have already agreed to this policy"));
+	    }
+	    
+	    else {
+	    	return ResponseEntity.ok(new MessageResponse("The policy end date has been expired.!"
+	    			+ " You must have signed on or before :"+qnr.getEnd_date()));
+	    }
+	    return ResponseEntity.ok(new MessageResponse("Thank you for accepting.!"));
 	}
 	
 	public HashMap<Integer, String> pendingQuestionnaire(Employees employee) throws NoSuchElementException
@@ -145,8 +162,10 @@ public class MapperService {
 				role.add(userRole);
 				emp.setRoles(role);
 				emp.setPassword(encodedPwd);
-				emp.setImage_path("/images/"+emp.getUsername());
+				emp.setImage_path("/images/"+emp.getUsername()+".jpg");
 				userRepo.save(emp);
+				User_Qnr_Mapper newMap = new User_Qnr_Mapper(emp.getEmp_num(), q_id, Boolean.FALSE);
+				mapperRepo.save(newMap);
 			}
 			else
 			{
@@ -164,8 +183,12 @@ public class MapperService {
 			
 			mailService.sendEmail(toUser, subject, mailBody);
 			
-			User_Qnr_Mapper mapping = new User_Qnr_Mapper(emp.getEmp_num(), q_id, Boolean.FALSE, LocalDate.now());
+			User_Qnr_Mapper mapping = mapperRepo.findByEmp_numAndQ_id(emp.getEmp_num(), qnr.getQ_id()).get();
+				
+			mapping.setDate_mail_sent(LocalDate.now());
 			mapperRepo.save(mapping);
+					//new User_Qnr_Mapper(emp.getEmp_num(), q_id, Boolean.FALSE, LocalDate.now());
+			//mapperRepo.save(mapping);
 			}
 		return ResponseEntity.ok(new MessageResponse("Published mail to the users successfully.!"));
 		}
@@ -202,7 +225,7 @@ public class MapperService {
 				role.add(userRole);
 				emp.setRoles(role);
 				emp.setPassword(encodedPwd);
-				emp.setImage_path("/images/"+emp.getUsername());
+				emp.setImage_path("/images/"+emp.getUsername()+".jpg");
 				userRepo.save(emp);
 			}
 			else
@@ -212,11 +235,11 @@ public class MapperService {
 				userRepo.save(previouslyExistingEmp);
 			}
 			
-			String mailBody = qnr.getMail_body()+" Login credentials"
-					+ " Username:"+emp.getUsername()+" password:"+password+
-					" NOTE: These will be your login credentials for company related other logins as well"+
+			String mailBody = qnr.getMail_body()+".   Login credentials"
+					+ " Username :"+emp.getUsername()+"                 password:"+password+
+					"              NOTE: These will be your login credentials for company related other logins as well.      "+
 					" click on the link to login  : https://127.0.0.1:8080/authenticate/login"
-					+ " Please accept before "+qnr.getEnd_date();
+					+ "             Accept before "+qnr.getEnd_date();
 			String toUser = emp.getEmail();
 			
 			mailService.sendEmail(toUser, subject, mailBody);
@@ -237,5 +260,35 @@ public class MapperService {
 		}
 		return null;
 	}
-
+	
+	public void mapUsersAndQnr(Integer q_id, List<Employees> empList) throws NoSuchElementException, MailException, MessagingException
+	{
+		
+	for(Employees emp: empList) {
+	
+		String password = emp.generatePassword();
+		String encodedPwd = encoder.encode(password);
+		Set<Role> role;
+		
+		if(!userRepo.existsById(emp.getEmp_num()))
+		{
+			role = new HashSet<>();
+			Role userRole = roleRepo.findByName(ERoles.ROLE_USER).get();
+			role.add(userRole);
+			emp.setRoles(role);
+			emp.setPassword(encodedPwd);
+			emp.setImage_path("/images/"+emp.getUsername()+".jpg");
+			userRepo.save(emp);
+		}
+		else
+		{
+			Employees previouslyExistingEmp = userRepo.findById(emp.getEmp_num()).get();
+			previouslyExistingEmp.setPassword(encodedPwd);
+			userRepo.save(previouslyExistingEmp);
+		}
+		User_Qnr_Mapper mapping = new User_Qnr_Mapper(emp.getEmp_num(), q_id, Boolean.FALSE);
+		mapperRepo.save(mapping);
+	}
+	}
+	
 }

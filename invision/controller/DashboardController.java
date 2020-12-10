@@ -1,7 +1,8 @@
 package com.miniproj.invision.controller;
 
-import java.io.File;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -73,30 +74,46 @@ public class DashboardController {
 	@Autowired
 	MapperService mapperService;
 	
-	@Autowired
-	private FilePathGetter pathGetter;
-	
 	 Random random = new Random();
 	 Set<Role> role;
 
 	@PostMapping("/saveQuestionnaire")
 	@ResponseStatus(HttpStatus.CREATED)
-	public ResponseEntity<?> addQuestionnaire( 
-			 @RequestParam("questionnaire") String quest,
-	         @RequestParam("pptfile") MultipartFile file, 
-	         @RequestParam("xlfile") MultipartFile xlFile) throws IOException, JsonMappingException 
+	public HashMap<String, String> addQuestionnaire( 
+			 @RequestBody Questionnaire quest) 
 	 {
-
-		Gson gson = new Gson(); Questionnaire qnr = gson.fromJson(quest, Questionnaire.class);
+		HashMap<String, String> idMap = new HashMap<>();
 		
-		String fileName = uploadService.storeFile(xlFile);
-		String ppt_path = pathGetter.getUploadDir()+"/"+fileName;
-		qnr.setPpt_path(ppt_path);
-		userService.addEmployeesFromXl(xlFile);
-
-		qnrRepo.save(qnr);
-
-		return ResponseEntity.ok(new MessageResponse("New questionnaire added successfully"));
+		if(quest.getEnd_date().isBefore(LocalDate.now()))
+		{
+			idMap.put("message", "ERROR.! End date given is before the current date");
+			return idMap; 
+		}
+		else if(quest.getEnd_date().isBefore(quest.getStart_date()))
+		{
+			idMap.put("message", "ERROR.! Check start date and end date");
+			return idMap; 
+		}
+		else
+		{
+		qnrRepo.save(quest);
+		
+		LocalDate endDate = quest.getEnd_date();
+		quest.setEnd_date(endDate);
+		qnrRepo.save(quest);
+		
+		idMap.put("id", quest.getQ_id().toString());
+		return idMap;
+		}
+	} 
+	
+	@PostMapping("/mapUserToQnr/{q_id}")
+	@ResponseStatus(HttpStatus.CREATED)
+	public ResponseEntity<?>  mapUserQnr(@PathVariable Integer q_id,
+			 @RequestBody List<Employees> usersList) throws MailException, NoSuchElementException, MessagingException 
+	 {
+		mapperService.mapUsersAndQnr(q_id, usersList);
+		return ResponseEntity.ok(new MessageResponse("Users added successfully.!"));
 	} 
 	
 	@GetMapping("/getQuestionnaire/{q_id}")

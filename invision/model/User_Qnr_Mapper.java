@@ -17,7 +17,7 @@ public class User_Qnr_Mapper {
 		this.emp_num = emp_num;
 		this.q_id = q_id;
 		this.status = status;
-		this.date_mail_sent = date_mail_sent;
+		this.date_accepted = date_accepted;
 	}
 	
 	public User_Qnr_Mapper(String emp_num, Integer q_id, boolean status) {
